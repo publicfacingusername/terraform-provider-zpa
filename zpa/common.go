@@ -224,6 +224,9 @@ func validateOperand(operand policysetcontroller.Operands, zClient *Client, micr
 			return rhsWarn(operand.ObjectType, "true/false", operand.RHS, nil)
 		}
 		return nil
+	default:
+		return fmt.Errorf("[WARN] invalid operand object type %s", operand.ObjectType)
+	}
 }
 
 type Getter func(id string) error
