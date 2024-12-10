@@ -211,25 +211,19 @@ func validateOperand(operand policysetcontroller.Operands, zClient *Client, micr
 		}
 		return nil
 	case "CHROME_ENTERPRISE":
-		entryValuesSet, ok := operandMap["entry_values"].(*schema.Set)
-		if !ok || entryValuesSet.Len() == 0 {
-			return fmt.Errorf("entry_values must be provided for CHROME_ENTERPRISE object_type")
+		if operand.LHS == "" {
+			return lhsWarn(operand.ObjectType, "managed", operand.LHS, nil)
 		}
-		for _, ev := range entryValuesSet.List() {
-			evMap := ev.(map[string]interface{})
-			lhs, lhsOk := evMap["lhs"].(string)
-			rhs, rhsOk := evMap["rhs"].(string)
-
-			if !lhsOk || lhs != "managed" {
-				return fmt.Errorf("LHS must be 'managed' for CHROME_ENTERPRISE object_type")
-			}
-			if !rhsOk || (rhs != "true" && rhs != "false") {
-				return fmt.Errorf("rhs value must be either 'true' or 'false' for CHROME_ENTERPRISE object_type")
-			}
+		if operand.LHS != "managed" {
+			return lhsWarn(operand.ObjectType, "managed", operand.LHS, nil)
 		}
-	default:
-		return fmt.Errorf("[WARN] invalid operand object type %s", operand.ObjectType)
-	}
+		if operand.RHS == "" {
+			return rhsWarn(operand.ObjectType, "true/false", operand.RHS, nil)
+		}
+		if operand.RHS != "true" && operand.RHS != "false" {
+			return rhsWarn(operand.ObjectType, "true/false", operand.RHS, nil)
+		}
+		return nil
 }
 
 type Getter func(id string) error
