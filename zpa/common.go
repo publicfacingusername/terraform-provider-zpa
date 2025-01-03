@@ -1464,31 +1464,38 @@ func flattenPredefinedControls(predControl []common.CustomCommonControls) []inte
 
 func expandCommonServerGroups(d *schema.ResourceData) []servergroup.ServerGroup {
 	serverGroupInterface, ok := d.GetOk("server_groups")
-	if ok {
-		serverGroupSet, ok := serverGroupInterface.(*schema.Set)
-		if !ok {
-			return []servergroup.ServerGroup{}
-		}
-		log.Printf("[INFO] server group data: %+v\n", serverGroupSet)
-		var serverGroups []servergroup.ServerGroup
-		for _, serverGroup := range serverGroupSet.List() {
-			serverGroupMap, ok := serverGroup.(map[string]interface{})
-			if ok && serverGroupMap != nil {
-				idSet, ok := serverGroupMap["id"].(*schema.Set)
-				if !ok {
-					continue
-				}
-				for _, id := range idSet.List() {
-					serverGroups = append(serverGroups, servergroup.ServerGroup{
-						ID: id.(string),
-					})
-				}
-			}
-		}
-		return serverGroups
+	if !ok || serverGroupInterface == nil {
+		log.Printf("[WARN] No server groups found in resource data")
+		return []servergroup.ServerGroup{}
 	}
 
-	return []servergroup.ServerGroup{}
+	serverGroupSet, ok := serverGroupInterface.(*schema.Set)
+	if !ok {
+		log.Printf("[WARN] server_groups is not a schema.Set")
+		return []servergroup.ServerGroup{}
+	}
+
+	log.Printf("[INFO] server group data: %+v\n", serverGroupSet)
+
+	var serverGroups []servergroup.ServerGroup
+	for _, item := range serverGroupSet.List() {
+		serverGroupMap, ok := item.(map[string]interface{})
+		if !ok {
+			log.Printf("[WARN] Unexpected server group format: %+v\n", item)
+			continue
+		}
+
+		id, ok := serverGroupMap["id"].(string)
+		if ok {
+			serverGroups = append(serverGroups, servergroup.ServerGroup{
+				ID: id,
+			})
+		} else {
+			log.Printf("[WARN] Invalid server group ID: %+v\n", serverGroupMap)
+		}
+	}
+
+	return serverGroups
 }
 
 func expandCommonAppConnectorGroups(d *schema.ResourceData) []appconnectorgroup.AppConnectorGroup {
