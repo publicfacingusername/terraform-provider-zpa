@@ -1562,6 +1562,9 @@ func flattenCommonAppConnectorGroups(appConnectorGroups []appconnectorgroup.AppC
 }
 
 func flattenCommonAppServerGroups(serverGroups []servergroup.ServerGroup) []interface{} {
+	if len(serverGroups) == 0 {
+		return []interface{}{}
+	}
 	result := make([]interface{}, 1)
 	mapIds := make(map[string]interface{})
 	ids := make([]string, len(serverGroups))
