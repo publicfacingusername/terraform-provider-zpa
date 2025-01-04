@@ -1462,77 +1462,79 @@ func flattenPredefinedControls(predControl []common.CustomCommonControls) []inte
 }
 
 func expandCommonServerGroups(d *schema.ResourceData) []servergroup.ServerGroup {
-	serverGroupInterface, ok := d.GetOk("app_server_groups")
-	if !ok || serverGroupInterface == nil {
-		log.Printf("[WARN] No app server groups found in resource data")
-		return []servergroup.ServerGroup{}
-	}
-
-	serverGroupList, ok := serverGroupInterface.([]interface{})
-	if !ok {
-		log.Printf("[WARN] app_server_groups is not a list")
-		return []servergroup.ServerGroup{}
-	}
-
-	log.Printf("[INFO] app server group data: %+v\n", serverGroupList)
-
-	var serverGroups []servergroup.ServerGroup
-	for _, item := range serverGroupList {
-		serverGroupMap, ok := item.(map[string]interface{})
+	serverGroupsInterface, ok := d.GetOk("app_server_groups")
+	if ok {
+		log.Printf("[DEBUG] Server groups raw data: %+v", serverGroupsInterface)
+		serverGroupList, ok := serverGroupsInterface.([]interface{})
 		if !ok {
-			log.Printf("[WARN] Unexpected server group format: %+v\n", item)
-			continue
+			log.Printf("[WARN] app_server_groups is not a list")
+			return []servergroup.ServerGroup{}
 		}
 
-		idList, ok := serverGroupMap["id"].([]interface{})
-		if !ok {
-			log.Printf("[WARN] Invalid server group ID list: %+v\n", serverGroupMap)
-			continue
-		}
+		log.Printf("[INFO] app server group data: %+v\n", serverGroupList)
 
-		for _, idItem := range idList {
-			id, ok := idItem.(string)
-			if ok {
-				serverGroups = append(serverGroups, servergroup.ServerGroup{
-					ID: id,
-				})
-			} else {
-				log.Printf("[WARN] Invalid server group ID: %+v\n", idItem)
+		var serverGroups []servergroup.ServerGroup
+		for _, item := range serverGroupList {
+			serverGroupMap, ok := item.(map[string]interface{})
+			if !ok {
+				log.Printf("[WARN] Unexpected server group format: %+v\n", item)
+				continue
+			}
+
+			idList, ok := serverGroupMap["id"].([]interface{})
+			if !ok {
+				log.Printf("[WARN] Invalid server group ID list: %+v\n", serverGroupMap)
+				continue
+			}
+
+			for _, idItem := range idList {
+				id, ok := idItem.(string)
+				if ok {
+					serverGroups = append(serverGroups, servergroup.ServerGroup{
+						ID: id,
+					})
+				} else {
+					log.Printf("[WARN] Invalid server group ID: %+v\n", idItem)
+				}
 			}
 		}
+
+		return serverGroups
 	}
 
-	return serverGroups
+	log.Printf("[WARN] No app server groups found in resource data")
+	return []servergroup.ServerGroup{}
 }
 
 func expandCommonAppConnectorGroups(d *schema.ResourceData) []policysetcontroller.AppConnectorGroup {
 	appConnectorGroupsInterface, ok := d.GetOk("app_connector_groups")
-	if !ok {
-		log.Printf("[DEBUG] No app connector groups found in resource data")
-		return []policysetcontroller.AppConnectorGroup{}
-	}
+	if ok {
+		log.Printf("[DEBUG] App connector groups raw data: %+v", appConnectorGroupsInterface)
+		appConnectorGroupsList := appConnectorGroupsInterface.([]interface{})
+		if len(appConnectorGroupsList) == 0 {
+			return []policysetcontroller.AppConnectorGroup{}
+		}
 
-	appConnectorGroupsList := appConnectorGroupsInterface.([]interface{})
-	if len(appConnectorGroupsList) == 0 {
-		return []policysetcontroller.AppConnectorGroup{}
-	}
-
-	var result []policysetcontroller.AppConnectorGroup
-	for _, group := range appConnectorGroupsList {
-		groupMap := group.(map[string]interface{})
-		if ids, ok := groupMap["id"].([]interface{}); ok {
-			for _, id := range ids {
-				if strID, ok := id.(string); ok {
-					result = append(result, policysetcontroller.AppConnectorGroup{
-						ID: strID,
-					})
+		var result []policysetcontroller.AppConnectorGroup
+		for _, group := range appConnectorGroupsList {
+			groupMap := group.(map[string]interface{})
+			if ids, ok := groupMap["id"].([]interface{}); ok {
+				for _, id := range ids {
+					if strID, ok := id.(string); ok {
+						result = append(result, policysetcontroller.AppConnectorGroup{
+							ID: strID,
+						})
+					}
 				}
 			}
 		}
+
+		log.Printf("[DEBUG] Expanded app connector groups: %+v", result)
+		return result
 	}
 
-	log.Printf("[DEBUG] Expanded app connector groups: %+v", result)
-	return result
+	log.Printf("[DEBUG] No app connector groups found in resource data")
+	return []policysetcontroller.AppConnectorGroup{}
 }
 
 func flattenCommonAppConnectorGroups(groups []policysetcontroller.AppConnectorGroup) []interface{} {
@@ -1580,5 +1582,67 @@ func flattenCommonServiceEdgeGroups(serviceEdgeGroups []serviceedgegroup.Service
 	}
 	mapIds["id"] = ids
 	result[0] = mapIds
+	return result
+}
+
+func expandCommonAppConnectorGroups(d *schema.ResourceData) []policysetcontroller.AppConnectorGroup {
+	appConnectorGroupsInterface, ok := d.GetOk("app_connector_groups")
+	if ok {
+		log.Printf("[DEBUG] App connector groups raw data: %+v", appConnectorGroupsInterface)
+		appConnectorGroupsList := appConnectorGroupsInterface.([]interface{})
+		if len(appConnectorGroupsList) == 0 {
+			return []policysetcontroller.AppConnectorGroup{}
+		}
+
+		var result []policysetcontroller.AppConnectorGroup
+		for _, group := range appConnectorGroupsList {
+			groupMap := group.(map[string]interface{})
+			if idList, ok := groupMap["id"].([]interface{}); ok {
+				for _, id := range idList {
+					if strID, ok := id.(string); ok {
+						result = append(result, policysetcontroller.AppConnectorGroup{
+							ID: strID,
+						})
+					}
+				}
+			}
+		}
+
+		log.Printf("[DEBUG] Expanded app connector groups: %+v", result)
+		return result
+	}
+
+	log.Printf("[DEBUG] No app connector groups found in resource data")
+	return []policysetcontroller.AppConnectorGroup{}
+}
+
+func expandCommonServerGroups(d *schema.ResourceData) []policysetcontroller.ServerGroup {
+	serverGroupsInterface, ok := d.GetOk("app_server_groups")
+	if !ok {
+		log.Printf("[DEBUG] No server groups found in resource data")
+		return []policysetcontroller.ServerGroup{}
+	}
+
+	log.Printf("[DEBUG] Server groups raw data: %+v", serverGroupsInterface)
+	serverGroupsList := serverGroupsInterface.([]interface{})
+	if len(serverGroupsList) == 0 {
+		return []policysetcontroller.ServerGroup{}
+	}
+
+	var result []policysetcontroller.ServerGroup
+	for _, group := range serverGroupsList {
+		groupMap := group.(map[string]interface{})
+		if idList, ok := groupMap["id"].([]interface{}); ok {
+			for _, id := range idList {
+				if strID, ok := id.(string); ok {
+					result = append(result, policysetcontroller.ServerGroup{
+						ID: strID,
+					})
+				}
+			}
+		}
+	}
+
+	log.Printf("[DEBUG] Expanded server groups: %+v", result)
 	return result
 }

@@ -246,7 +246,6 @@ func resourcePolicyAccessDelete(d *schema.ResourceData, meta interface{}) error 
 }
 
 func expandCreatePolicyRule(d *schema.ResourceData, policySetID string) (*policysetcontroller.PolicyRule, error) {
-
 	conditions, err := ExpandPolicyConditions(d)
 	if err != nil {
 		return nil, err
