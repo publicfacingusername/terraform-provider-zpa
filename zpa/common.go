@@ -12,7 +12,6 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
-	"github.com/zscaler/zscaler-sdk-go/v2/zpa/services/appconnectorgroup"
 	"github.com/zscaler/zscaler-sdk-go/v2/zpa/services/applicationsegment"
 	"github.com/zscaler/zscaler-sdk-go/v2/zpa/services/cloudconnectorgroup"
 	"github.com/zscaler/zscaler-sdk-go/v2/zpa/services/common"
@@ -1506,73 +1505,51 @@ func expandCommonServerGroups(d *schema.ResourceData) []servergroup.ServerGroup 
 	return serverGroups
 }
 
-func expandCommonAppConnectorGroups(d *schema.ResourceData) []appconnectorgroup.AppConnectorGroup {
-	appConnectorGroupInterface, ok := d.GetOk("app_connector_groups")
-	if ok {
-		appConnectorGroupSet, ok := appConnectorGroupInterface.(*schema.Set)
-		if !ok {
-			return []appconnectorgroup.AppConnectorGroup{}
-		}
-		log.Printf("[INFO] app connector group data: %+v\n", appConnectorGroupSet)
-		var appConnectorGroups []appconnectorgroup.AppConnectorGroup
-		for _, appConnectorGroup := range appConnectorGroupSet.List() {
-			appConnectorGroupMap, ok := appConnectorGroup.(map[string]interface{})
-			if ok && appConnectorGroupMap != nil {
-				idSet, ok := appConnectorGroupMap["id"].(*schema.Set)
-				if !ok {
-					continue
-				}
-				for _, id := range idSet.List() {
-					appConnectorGroups = append(appConnectorGroups, appconnectorgroup.AppConnectorGroup{
-						ID: id.(string),
+func expandCommonAppConnectorGroups(d *schema.ResourceData) []policysetcontroller.AppConnectorGroup {
+	appConnectorGroupsInterface, ok := d.GetOk("app_connector_groups")
+	if !ok {
+		log.Printf("[DEBUG] No app connector groups found in resource data")
+		return []policysetcontroller.AppConnectorGroup{}
+	}
+
+	appConnectorGroupsList := appConnectorGroupsInterface.([]interface{})
+	if len(appConnectorGroupsList) == 0 {
+		return []policysetcontroller.AppConnectorGroup{}
+	}
+
+	var result []policysetcontroller.AppConnectorGroup
+	for _, group := range appConnectorGroupsList {
+		groupMap := group.(map[string]interface{})
+		if ids, ok := groupMap["id"].([]interface{}); ok {
+			for _, id := range ids {
+				if strID, ok := id.(string); ok {
+					result = append(result, policysetcontroller.AppConnectorGroup{
+						ID: strID,
 					})
 				}
 			}
 		}
-		return appConnectorGroups
 	}
 
-	return []appconnectorgroup.AppConnectorGroup{}
+	log.Printf("[DEBUG] Expanded app connector groups: %+v", result)
+	return result
 }
 
-func expandCommonServiceEdgeGroups(d *schema.ResourceData) []serviceedgegroup.ServiceEdgeGroup {
-	serviceEdgeGroupInterface, ok := d.GetOk("service_edge_groups")
-	if ok {
-		serviceEdgeGroupSet, ok := serviceEdgeGroupInterface.(*schema.Set)
-		if !ok {
-			return []serviceedgegroup.ServiceEdgeGroup{}
-		}
-		log.Printf("[INFO] service edge group data: %+v\n", serviceEdgeGroupSet)
-		var serviceEdgeGroups []serviceedgegroup.ServiceEdgeGroup
-		for _, serviceEdgeGroup := range serviceEdgeGroupSet.List() {
-			serviceEdgeGroupMap, ok := serviceEdgeGroup.(map[string]interface{})
-			if ok && serviceEdgeGroupMap != nil {
-				idSet, ok := serviceEdgeGroupMap["id"].(*schema.Set)
-				if !ok {
-					continue
-				}
-				for _, id := range idSet.List() {
-					serviceEdgeGroups = append(serviceEdgeGroups, serviceedgegroup.ServiceEdgeGroup{
-						ID: id.(string),
-					})
-				}
-			}
-		}
-		return serviceEdgeGroups
+func flattenCommonAppConnectorGroups(groups []policysetcontroller.AppConnectorGroup) []interface{} {
+	if len(groups) == 0 {
+		return []interface{}{}
 	}
 
-	return []serviceedgegroup.ServiceEdgeGroup{}
-}
-
-func flattenCommonAppConnectorGroups(appConnectorGroups []appconnectorgroup.AppConnectorGroup) []interface{} {
 	result := make([]interface{}, 1)
-	mapIds := make(map[string]interface{})
-	ids := make([]string, len(appConnectorGroups))
-	for i, appConnectorGroup := range appConnectorGroups {
-		ids[i] = appConnectorGroup.ID
+	groupMap := make(map[string]interface{})
+	ids := make([]string, len(groups))
+
+	for i, group := range groups {
+		ids[i] = group.ID
 	}
-	mapIds["id"] = ids
-	result[0] = mapIds
+
+	groupMap["id"] = ids
+	result[0] = groupMap
 	return result
 }
 

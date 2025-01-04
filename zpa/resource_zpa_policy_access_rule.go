@@ -1,6 +1,7 @@
 package zpa
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 
@@ -93,10 +94,8 @@ func resourcePolicyAccessCreate(d *schema.ResourceData, meta interface{}) error 
 	zClient := meta.(*Client)
 	service := zClient.PolicySetController
 
-	microTenantID := GetString(d.Get("microtenant_id"))
-	if microTenantID != "" {
-		service = service.WithMicroTenant(microTenantID)
-	}
+	log.Printf("[DEBUG] Raw app_connector_groups data: %+v", d.Get("app_connector_groups"))
+	log.Printf("[DEBUG] Raw app_server_groups data: %+v", d.Get("app_server_groups"))
 
 	var policySetID string
 	var err error
@@ -104,7 +103,7 @@ func resourcePolicyAccessCreate(d *schema.ResourceData, meta interface{}) error 
 	if v, ok := d.GetOk("policy_set_id"); ok {
 		policySetID = v.(string)
 	} else {
-		policySetID, err = fetchPolicySetIDByType(zClient, "ACCESS_POLICY", microTenantID)
+		policySetID, err = fetchPolicySetIDByType(zClient, "ACCESS_POLICY")
 		if err != nil {
 			return err
 		}
@@ -115,17 +114,14 @@ func resourcePolicyAccessCreate(d *schema.ResourceData, meta interface{}) error 
 		return err
 	}
 
-	log.Printf("[INFO] Creating ZPA policy access rule with request\n%+v\n", req)
-
-	if err := ValidateConditions(req.Conditions, zClient, microTenantID); err != nil {
-		return err
-	}
+	log.Printf("[DEBUG] Creating ZPA policy access rule with request:\n%+v\n", req)
 
 	resp, _, err := policysetcontroller.CreateRule(service, req)
 	if err != nil {
 		return err
 	}
 
+	log.Printf("[DEBUG] Created policy rule response: %+v", resp)
 	d.SetId(resp.ID)
 
 	return resourcePolicyAccessRead(d, meta)
@@ -172,7 +168,11 @@ func resourcePolicyAccessRead(d *schema.ResourceData, meta interface{}) error {
 	_ = d.Set("microtenant_id", microTenantID)
 	_ = d.Set("conditions", flattenPolicyConditions(resp.Conditions))
 	_ = d.Set("app_server_groups", flattenCommonAppServerGroups(resp.AppServerGroups))
-	_ = d.Set("app_connector_groups", flattenCommonAppConnectorGroups(resp.AppConnectorGroups))
+	if len(resp.AppConnectorGroups) > 0 {
+		if err := d.Set("app_connector_groups", flattenCommonAppConnectorGroups(resp.AppConnectorGroups)); err != nil {
+			return fmt.Errorf("error setting app_connector_groups: %s", err)
+		}
+	}
 
 	return nil
 }
@@ -251,6 +251,13 @@ func expandCreatePolicyRule(d *schema.ResourceData, policySetID string) (*policy
 	if err != nil {
 		return nil, err
 	}
+
+	appConnectorGroups := expandCommonAppConnectorGroups(d)
+	appServerGroups := expandCommonServerGroups(d)
+
+	log.Printf("[DEBUG] Expanded app connector groups: %+v", appConnectorGroups)
+	log.Printf("[DEBUG] Expanded server groups: %+v", appServerGroups)
+
 	return &policysetcontroller.PolicyRule{
 		ID:                 d.Get("id").(string),
 		Name:               d.Get("name").(string),
@@ -267,7 +274,71 @@ func expandCreatePolicyRule(d *schema.ResourceData, policySetID string) (*policy
 		MicroTenantID:      d.Get("microtenant_id").(string),
 		LSSDefaultRule:     d.Get("lss_default_rule").(bool),
 		Conditions:         conditions,
-		AppServerGroups:    expandCommonServerGroups(d),
-		AppConnectorGroups: expandCommonAppConnectorGroups(d),
+		AppServerGroups:    appServerGroups,
+		AppConnectorGroups: appConnectorGroups,
 	}, nil
+}
+
+func expandCommonAppConnectorGroups(d *schema.ResourceData) []policysetcontroller.AppConnectorGroup {
+	appConnectorGroupsInterface, ok := d.GetOk("app_connector_groups")
+	if !ok {
+		log.Printf("[DEBUG] No app connector groups found in resource data")
+		return []policysetcontroller.AppConnectorGroup{}
+	}
+
+	log.Printf("[DEBUG] App connector groups raw data: %+v", appConnectorGroupsInterface)
+
+	appConnectorGroupsList := appConnectorGroupsInterface.([]interface{})
+	if len(appConnectorGroupsList) == 0 {
+		return []policysetcontroller.AppConnectorGroup{}
+	}
+
+	var result []policysetcontroller.AppConnectorGroup
+	for _, group := range appConnectorGroupsList {
+		groupMap := group.(map[string]interface{})
+		if idList, ok := groupMap["id"].([]interface{}); ok {
+			for _, id := range idList {
+				if strID, ok := id.(string); ok {
+					result = append(result, policysetcontroller.AppConnectorGroup{
+						ID: strID,
+					})
+				}
+			}
+		}
+	}
+
+	log.Printf("[DEBUG] Expanded app connector groups: %+v", result)
+	return result
+}
+
+func expandCommonServerGroups(d *schema.ResourceData) []policysetcontroller.ServerGroup {
+	serverGroupsInterface, ok := d.GetOk("app_server_groups")
+	if !ok {
+		log.Printf("[DEBUG] No server groups found in resource data")
+		return []policysetcontroller.ServerGroup{}
+	}
+
+	log.Printf("[DEBUG] Server groups raw data: %+v", serverGroupsInterface)
+
+	serverGroupsList := serverGroupsInterface.([]interface{})
+	if len(serverGroupsList) == 0 {
+		return []policysetcontroller.ServerGroup{}
+	}
+
+	var result []policysetcontroller.ServerGroup
+	for _, group := range serverGroupsList {
+		groupMap := group.(map[string]interface{})
+		if idList, ok := groupMap["id"].([]interface{}); ok {
+			for _, id := range idList {
+				if strID, ok := id.(string); ok {
+					result = append(result, policysetcontroller.ServerGroup{
+						ID: strID,
+					})
+				}
+			}
+		}
+	}
+
+	log.Printf("[DEBUG] Expanded server groups: %+v", result)
+	return result
 }
