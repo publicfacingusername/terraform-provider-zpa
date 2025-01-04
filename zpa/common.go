@@ -1463,35 +1463,43 @@ func flattenPredefinedControls(predControl []common.CustomCommonControls) []inte
 }
 
 func expandCommonServerGroups(d *schema.ResourceData) []servergroup.ServerGroup {
-	serverGroupInterface, ok := d.GetOk("server_groups")
+	serverGroupInterface, ok := d.GetOk("app_server_groups")
 	if !ok || serverGroupInterface == nil {
-		log.Printf("[WARN] No server groups found in resource data")
+		log.Printf("[WARN] No app server groups found in resource data")
 		return []servergroup.ServerGroup{}
 	}
 
-	serverGroupSet, ok := serverGroupInterface.(*schema.Set)
+	serverGroupList, ok := serverGroupInterface.([]interface{})
 	if !ok {
-		log.Printf("[WARN] server_groups is not a schema.Set")
+		log.Printf("[WARN] app_server_groups is not a list")
 		return []servergroup.ServerGroup{}
 	}
 
-	log.Printf("[INFO] server group data: %+v\n", serverGroupSet)
+	log.Printf("[INFO] app server group data: %+v\n", serverGroupList)
 
 	var serverGroups []servergroup.ServerGroup
-	for _, item := range serverGroupSet.List() {
+	for _, item := range serverGroupList {
 		serverGroupMap, ok := item.(map[string]interface{})
 		if !ok {
 			log.Printf("[WARN] Unexpected server group format: %+v\n", item)
 			continue
 		}
 
-		id, ok := serverGroupMap["id"].(string)
-		if ok {
-			serverGroups = append(serverGroups, servergroup.ServerGroup{
-				ID: id,
-			})
-		} else {
-			log.Printf("[WARN] Invalid server group ID: %+v\n", serverGroupMap)
+		idList, ok := serverGroupMap["id"].([]interface{})
+		if !ok {
+			log.Printf("[WARN] Invalid server group ID list: %+v\n", serverGroupMap)
+			continue
+		}
+
+		for _, idItem := range idList {
+			id, ok := idItem.(string)
+			if ok {
+				serverGroups = append(serverGroups, servergroup.ServerGroup{
+					ID: id,
+				})
+			} else {
+				log.Printf("[WARN] Invalid server group ID: %+v\n", idItem)
+			}
 		}
 	}
 
@@ -1568,18 +1576,21 @@ func flattenCommonAppConnectorGroups(appConnectorGroups []appconnectorgroup.AppC
 	return result
 }
 
-func flattenCommonAppServerGroups(serverGroups []servergroup.ServerGroup) []interface{} {
-	if len(serverGroups) == 0 {
+func flattenCommonAppServerGroups(groups []servergroup.ServerGroup) []interface{} {
+	if len(groups) == 0 {
 		return []interface{}{}
 	}
+
 	result := make([]interface{}, 1)
-	mapIds := make(map[string]interface{})
-	ids := make([]string, len(serverGroups))
-	for i, serverGroup := range serverGroups {
-		ids[i] = serverGroup.ID
+	groupMap := make(map[string]interface{})
+	ids := make([]string, len(groups))
+
+	for i, group := range groups {
+		ids[i] = group.ID
 	}
-	mapIds["id"] = ids
-	result[0] = mapIds
+
+	groupMap["id"] = ids
+	result[0] = groupMap
 	return result
 }
 

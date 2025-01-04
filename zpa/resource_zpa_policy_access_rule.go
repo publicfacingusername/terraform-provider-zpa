@@ -24,7 +24,7 @@ func resourcePolicyAccessRule() *schema.Resource {
 				"action": {
 					Type:        schema.TypeString,
 					Optional:    true,
-					Description: "  This is for providing the rule action.",
+					Description: "This is for providing the rule action.",
 					ValidateFunc: validation.StringInSlice([]string{
 						"ALLOW",
 						"DENY",
@@ -32,15 +32,15 @@ func resourcePolicyAccessRule() *schema.Resource {
 					}, false),
 				},
 				"app_server_groups": {
-					Type:        schema.TypeSet,
+					Type:        schema.TypeList,
 					Optional:    true,
 					Computed:    true,
 					Description: "List of the server group IDs.",
 					Elem: &schema.Resource{
 						Schema: map[string]*schema.Schema{
 							"id": {
-								Type:     schema.TypeSet,
-								Optional: true,
+								Type:     schema.TypeList,
+								Required: true,
 								Elem: &schema.Schema{
 									Type: schema.TypeString,
 								},
@@ -49,15 +49,15 @@ func resourcePolicyAccessRule() *schema.Resource {
 					},
 				},
 				"app_connector_groups": {
-					Type:        schema.TypeSet,
+					Type:        schema.TypeList,
 					Optional:    true,
 					Computed:    true,
 					Description: "List of app-connector IDs.",
 					Elem: &schema.Resource{
 						Schema: map[string]*schema.Schema{
 							"id": {
-								Type:     schema.TypeSet,
-								Optional: true,
+								Type:     schema.TypeList,
+								Required: true,
 								Elem: &schema.Schema{
 									Type: schema.TypeString,
 								},
@@ -271,73 +271,3 @@ func expandCreatePolicyRule(d *schema.ResourceData, policySetID string) (*policy
 		AppConnectorGroups: expandCommonAppConnectorGroups(d),
 	}, nil
 }
-
-/*
-func expandPolicySetControllerAppServerGroups(d *schema.ResourceData) []policysetcontroller.AppServerGroups {
-	appServerGroupsInterface, ok := d.GetOk("app_server_groups")
-	if ok {
-		appServer := appServerGroupsInterface.(*schema.Set)
-		log.Printf("[INFO] app server groups data: %+v\n", appServer)
-		var appServerGroups []policysetcontroller.AppServerGroups
-		for _, appServerGroup := range appServer.List() {
-			appServerGroup, _ := appServerGroup.(map[string]interface{})
-			if appServerGroup != nil {
-				for _, id := range appServerGroup["id"].(*schema.Set).List() {
-					appServerGroups = append(appServerGroups, policysetcontroller.AppServerGroups{
-						ID: id.(string),
-					})
-				}
-			}
-		}
-		return appServerGroups
-	}
-
-	return []policysetcontroller.AppServerGroups{}
-}
-
-func expandPolicysetControllerAppConnectorGroups(d *schema.ResourceData) []policysetcontroller.AppConnectorGroups {
-	appConnectorGroupsInterface, ok := d.GetOk("app_connector_groups")
-	if ok {
-		appConnector := appConnectorGroupsInterface.(*schema.Set)
-		log.Printf("[INFO] app connector groups data: %+v\n", appConnector)
-		var appConnectorGroups []policysetcontroller.AppConnectorGroups
-		for _, appConnectorGroup := range appConnector.List() {
-			appConnectorGroup, _ := appConnectorGroup.(map[string]interface{})
-			if appConnectorGroup != nil {
-				for _, id := range appConnectorGroup["id"].(*schema.Set).List() {
-					appConnectorGroups = append(appConnectorGroups, policysetcontroller.AppConnectorGroups{
-						ID: id.(string),
-					})
-				}
-			}
-		}
-		return appConnectorGroups
-	}
-
-	return []policysetcontroller.AppConnectorGroups{}
-}
-
-func flattenPolicyRuleServerGroups(appServerGroup []servergroup.AppServerGroups) []interface{} {
-	result := make([]interface{}, 1)
-	mapIds := make(map[string]interface{})
-	ids := make([]string, len(appServerGroup))
-	for i, serverGroup := range appServerGroup {
-		ids[i] = serverGroup.ID
-	}
-	mapIds["id"] = ids
-	result[0] = mapIds
-	return result
-}
-
-func flattenPolicyRuleAppConnectorGroups(appConnectorGroups []policysetcontroller.AppConnectorGroups) []interface{} {
-	result := make([]interface{}, 1)
-	mapIds := make(map[string]interface{})
-	ids := make([]string, len(appConnectorGroups))
-	for i, group := range appConnectorGroups {
-		ids[i] = group.ID
-	}
-	mapIds["id"] = ids
-	result[0] = mapIds
-	return result
-}
-*/
