@@ -25,7 +25,6 @@ import (
 	"github.com/zscaler/zscaler-sdk-go/v2/zpa/services/samlattribute"
 	"github.com/zscaler/zscaler-sdk-go/v2/zpa/services/scimattributeheader"
 	"github.com/zscaler/zscaler-sdk-go/v2/zpa/services/segmentgroup"
-	"github.com/zscaler/zscaler-sdk-go/v2/zpa/services/servergroup"
 	"github.com/zscaler/zscaler-sdk-go/v2/zpa/services/serviceedgegroup"
 	"github.com/zscaler/zscaler-sdk-go/v2/zpa/services/trustednetwork"
 )
@@ -1462,33 +1461,67 @@ func flattenPredefinedControls(predControl []common.CustomCommonControls) []inte
 	return predControls
 }
 
-func expandCommonServerGroups(d *schema.ResourceData) []servergroup.ServerGroup {
-	serverGroupInterface, ok := d.GetOk("server_groups")
-	if ok {
-		serverGroupSet, ok := serverGroupInterface.(*schema.Set)
-		if !ok {
-			return []servergroup.ServerGroup{}
-		}
-		log.Printf("[INFO] server group data: %+v\n", serverGroupSet)
-		var serverGroups []servergroup.ServerGroup
-		for _, serverGroup := range serverGroupSet.List() {
-			serverGroupMap, ok := serverGroup.(map[string]interface{})
-			if ok && serverGroupMap != nil {
-				idSet, ok := serverGroupMap["id"].(*schema.Set)
-				if !ok {
-					continue
-				}
-				for _, id := range idSet.List() {
-					serverGroups = append(serverGroups, servergroup.ServerGroup{
-						ID: id.(string),
+// Local wrapper type to match the API's expected format for server groups in policy rules
+type localAppServerGroup struct {
+	ID string `json:"id"`
+}
+
+func expandCommonServerGroups(d *schema.ResourceData) []localAppServerGroup {
+	serverGroupInterface, ok := d.GetOk("app_server_groups")
+	if !ok {
+		return []localAppServerGroup{}
+	}
+
+	serverGroupSet, ok := serverGroupInterface.(*schema.Set)
+	if !ok {
+		return []localAppServerGroup{}
+	}
+
+	log.Printf("[INFO] app server group data: %+v\n", serverGroupSet)
+	var serverGroups []localAppServerGroup
+	for _, serverGroup := range serverGroupSet.List() {
+		serverGroupMap, ok := serverGroup.(map[string]interface{})
+		if ok && serverGroupMap != nil {
+			idSet, ok := serverGroupMap["id"].(*schema.Set)
+			if !ok {
+				continue
+			}
+			for _, id := range idSet.List() {
+				if strID, ok := id.(string); ok {
+					serverGroups = append(serverGroups, localAppServerGroup{
+						ID: strID,
 					})
 				}
 			}
 		}
-		return serverGroups
 	}
 
-	return []servergroup.ServerGroup{}
+	log.Printf("[DEBUG] Expanded server groups: %+v", serverGroups)
+	return serverGroups
+}
+
+func flattenCommonAppServerGroups(serverGroups []localAppServerGroup) []interface{} {
+	if len(serverGroups) == 0 {
+		return nil
+	}
+
+	result := make([]interface{}, 1)
+	mapIds := make(map[string]interface{})
+	ids := make([]string, len(serverGroups))
+	for i, serverGroup := range serverGroups {
+		if serverGroup.ID != "" {
+			ids[i] = serverGroup.ID
+		}
+	}
+
+	// Only return non-empty results
+	if len(ids) > 0 {
+		mapIds["id"] = ids
+		result[0] = mapIds
+		return result
+	}
+
+	return nil
 }
 
 func expandCommonAppConnectorGroups(d *schema.ResourceData) []appconnectorgroup.AppConnectorGroup {
@@ -1561,16 +1594,28 @@ func flattenCommonAppConnectorGroups(appConnectorGroups []appconnectorgroup.AppC
 	return result
 }
 
-func flattenCommonAppServerGroups(serverGroups []servergroup.ServerGroup) []interface{} {
+func flattenCommonAppServerGroups(serverGroups []localAppServerGroup) []interface{} {
+	if len(serverGroups) == 0 {
+		return nil
+	}
+
 	result := make([]interface{}, 1)
 	mapIds := make(map[string]interface{})
 	ids := make([]string, len(serverGroups))
 	for i, serverGroup := range serverGroups {
-		ids[i] = serverGroup.ID
+		if serverGroup.ID != "" {
+			ids[i] = serverGroup.ID
+		}
 	}
-	mapIds["id"] = ids
-	result[0] = mapIds
-	return result
+
+	// Only return non-empty results
+	if len(ids) > 0 {
+		mapIds["id"] = ids
+		result[0] = mapIds
+		return result
+	}
+
+	return nil
 }
 
 func flattenCommonServiceEdgeGroups(serviceEdgeGroups []serviceedgegroup.ServiceEdgeGroup) []interface{} {
