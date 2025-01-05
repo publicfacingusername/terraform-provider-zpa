@@ -1463,7 +1463,7 @@ func flattenPredefinedControls(predControl []common.CustomCommonControls) []inte
 }
 
 func expandCommonServerGroups(d *schema.ResourceData) []servergroup.ServerGroup {
-	serverGroupInterface, ok := d.GetOk("server_groups")
+	serverGroupInterface, ok := d.GetOk("app_server_groups")
 	if ok {
 		serverGroupSet, ok := serverGroupInterface.(*schema.Set)
 		if !ok {
