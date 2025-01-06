@@ -31,7 +31,7 @@ func resourcePolicyAccessRule() *schema.Resource {
 						"REQUIRE_APPROVAL",
 					}, false),
 				},
-				"app_server_groups": {
+				"server_groups": {
 					Type:        schema.TypeSet,
 					Optional:    true,
 					Computed:    true,
@@ -170,7 +170,7 @@ func resourcePolicyAccessRead(d *schema.ResourceData, meta interface{}) error {
 	_ = d.Set("lss_default_rule", resp.LSSDefaultRule)
 	_ = d.Set("microtenant_id", microTenantID)
 	_ = d.Set("conditions", flattenPolicyConditions(resp.Conditions))
-	_ = d.Set("app_server_groups", flattenCommonAppServerGroups(resp.AppServerGroups))
+	_ = d.Set("server_groups", flattenCommonAppServerGroups(resp.AppServerGroups))
 	_ = d.Set("app_connector_groups", flattenCommonAppConnectorGroups(resp.AppConnectorGroups))
 
 	return nil
