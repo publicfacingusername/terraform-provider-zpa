@@ -86,7 +86,7 @@ resource "zpa_policy_access_rule" "this" {
 - `app_connector_groups` (Block Set)
   * `id` (String) The ID of an app connector group resource
 
-- `app_server_groups` (Block Set)
+- `server_groups` (Block Set)
   * `id` (String) The ID of a server group resource
 
 ## Import

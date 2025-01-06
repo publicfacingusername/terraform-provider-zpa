@@ -171,7 +171,7 @@ resource "zpa_policy_access_rule_v2" "this" {
 - `app_connector_groups` (Block Set)
   - `id` (String) The ID of an app connector group resource
 
-- `app_server_groups` (Block Set)
+- `server_groups` (Block Set)
   - `id` (String) The ID of a server group resource
 
 - `microtenant_id` (String) The ID of the microtenant the resource is to be associated with.
