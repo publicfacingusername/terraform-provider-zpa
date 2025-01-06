@@ -113,7 +113,7 @@ resource "zpa_server_group" "this" {
 - `app_connector_groups` (Block Set)
   * `id` (String) The ID of an app connector group resource
 
-- `server_groups` (Block Set)
+- `app_server_groups` (Block Set)
   * `id` (String) The ID of a server group resource
 
 ## Import
