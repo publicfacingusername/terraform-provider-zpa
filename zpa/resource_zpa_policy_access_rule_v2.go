@@ -147,7 +147,7 @@ func resourcePolicyAccessRuleV2() *schema.Resource {
 					},
 				},
 			},
-			"server_groups": {
+			"app_server_groups": {
 				Type:        schema.TypeSet,
 				Optional:    true,
 				Computed:    true,
@@ -265,7 +265,7 @@ func resourcePolicyAccessV2Read(d *schema.ResourceData, meta interface{}) error 
 	_ = d.Set("policy_set_id", policySetID)
 	_ = d.Set("custom_msg", v2PolicyRule.CustomMsg)
 	_ = d.Set("conditions", flattenConditionsV2(v2PolicyRule.Conditions))
-	_ = d.Set("server_groups", flattenCommonAppServerGroups(resp.AppServerGroups))
+	_ = d.Set("app_server_groups", flattenCommonAppServerGroups(resp.AppServerGroups))
 	_ = d.Set("app_connector_groups", flattenCommonAppConnectorGroups(resp.AppConnectorGroups))
 
 	return nil
